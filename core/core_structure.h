@@ -2,9 +2,23 @@
 #define CORE_STRUCTURE_H
 #include<stdio.h>
 #include<math.h>
+
+#include<string.h>
+#include<iostream>
+
+#define PI 3.14159265358979323846 
+
 struct vec2{
-    float x;
-    float y;
+    union 
+    {
+        struct{
+            float x;
+            float y;
+        };
+        float components[3];
+    };
+    
+    
 
     vec2(){
         x=0;
@@ -19,6 +33,31 @@ struct vec2{
     vec2(float val){
         x = val;
         y = val;
+    }
+
+    vec2 operator -(const vec2& other)const{
+        return vec2(x-other.x, y-other.y);
+    }
+
+    vec2 operator +(const vec2& other)const{
+        return vec2(x+other.x, y+other.y);
+    }
+
+    vec2 operator *(const float val){
+        return vec2(x*val, y*val);
+    }
+
+    void operator =(const vec2& other){
+        x = other.x;
+        y = other.y;
+    }
+
+    void operator +=(const vec2& other){
+        *this = *this + other;
+    }
+
+    float& operator [](const int index){
+        return components[index%2];
     }
 };
 
@@ -41,12 +80,24 @@ struct vec2i{
         x = val;
         y = val;
     }
+
+
 };
 
 struct vec3{
-    float x;
-    float y;
-    float z;
+    union 
+    {
+        struct 
+        {
+            float x;
+            float y;
+            float z;
+        };
+        
+        float components[3];
+    };
+    
+    
 
     vec3(){
         x=0;
@@ -72,31 +123,82 @@ struct vec3{
         z = _z;
     }
 
-    vec3 operator *(const vec3& other)const{
+    void set(float _x, float _y, float _z){
+        x = _x;
+        y = _y;
+        z = _z;
+    }
+
+    void normalize(){
+        float len = length();
+        if(len == 0){
+            set(0,0,0);
+            return;
+        }
+        x = x/len;
+        y = y/len;
+        z = z/len;
+
+    }
+
+    vec3 normalized(){
+        vec3 ret = *this;
+        ret.normalize();
+        return ret;
+    }
+
+    float length(){
+        return sqrt(x*x +y*y +z*z);
+    }
+
+    float length_squared(){
+        return x*x + y*y + z*z;
+    }
+
+    vec3 operator *(const vec3 other)const{
         return vec3(x*other.x, y*other.y, z*other.z);
     }
 
-    vec3 operator +(const vec3& other)const{
+    void operator *=(const vec3 other){
+        this->x *= other.x;
+        this->y *= other.y;
+        this->z *= other.z;
+    }
+
+    vec3 operator +(const vec3 other)const{
         return vec3(x+other.x, y+other.y, z+other.z);
     }
-    void operator+=(const vec3& other){
+    void operator+=(const vec3 other){
         *this = *this + other;
     }
 
-    vec3 operator -(const vec3& other)const{
+    vec3 operator -(const vec3 other)const{
         return vec3(x-other.x, y-other.y, z-other.z);
+    }
+
+
+    void operator -=(const vec3 other){
+        this->x -= other.x;
+        this->y -= other.y;
+        this->z -= other.z;
+
+    }
+
+    vec3 operator- ()const{
+        return vec3(-x, -y, -z);
     }
 
     float dot(const vec3 other)const{
         return x*other.x + y*other.y + z * other.z;
     }
 
-    vec3 cross(const vec3 other)const{
-        vec3 ret;
-        ret.x = y*other.z - z*other.y;
-        ret.y = x*other.z - z*other.x;
-        ret.z = x*other.y - y*other.x;
-        return ret;
+    vec3 cross(const vec3 p_b)const{
+        vec3 ret(
+			(y * p_b.z) - (z * p_b.y),
+			(z * p_b.x) - (x * p_b.z),
+			(x * p_b.y) - (y * p_b.x));
+
+	    return ret;
     }
 
     vec3 operator*(float val)const{
@@ -104,6 +206,13 @@ struct vec3{
 
         return vec3(x*val, y*val, z*val);
     }
+
+    float & operator[](const int index){
+        
+        return components[index%3];
+    }
+
+    
 
     void print(){
         printf("{%f, %f, %f}", x,y,z);
@@ -244,8 +353,126 @@ struct mat3{
         return x*vec + y*vec + z*vec;
     }
 
+    void print(){
+        printf("(%f,%f,%f),", x.x, x.y, x.z);
+        printf("(%f,%f,%f),", y.x, y.y, y.z);
+        printf("(%f,%f,%f)", z.x, z.y, z.z);
+    }
     
 };
+
+
+struct quat{
+    union
+    {
+        struct{
+            float x;
+            float y;
+            float z;
+        };
+        vec3 xyz;
+        
+    };
+    float w;
+
+    quat(){
+        xyz = vec3(0,0,0);
+        w = 1;
+    }
+
+    void set(float _x, float _y, float _z, float _w){
+        x= _x;
+        y = _y;
+        z = _z;
+        w = _w;
+        
+    }
+
+    quat(float p_x, float p_y, float p_z, float p_w){
+        x = p_x;
+        y = p_y;
+        z = p_z;
+        w = p_w;
+    }
+
+    quat(const vec3 &v0, const vec3 &v1) // shortest arc
+	{
+		vec3 c = v0.cross(v1);
+		float d = v0.dot(v1);
+
+		if (d < -1.0 + 0.001) {
+			x = 0;
+			y = 1;
+			z = 0;
+			w = 0;
+		} else {
+			float s = sqrt((1.0 + d) * 2.0);
+			float rs = 1.0 / s;
+
+			x = c.x * rs;
+			y = c.y * rs;
+			z = c.z * rs;
+			w = s * 0.5;
+		}
+	}
+
+    quat(vec3 axis, float angle){
+        float d = axis.length();
+        if (d == 0) {
+           set(0,0,0,0);
+        } else {
+            float sin_angle = sin(angle * 0.5);
+            float cos_angle = cos(angle * 0.5);
+            float s = sin_angle / d;
+            set(axis.x * s, axis.y * s, axis.z * s, cos_angle);
+	    }
+    }
+
+    quat operator*(quat& rhs) {
+        quat q;
+
+        q.w = w * rhs.w - x * rhs.x - y * rhs.y - z * rhs.z;
+        q.x = w * rhs.x + x * rhs.w + y * rhs.z - z * rhs.y;
+        q.y = w * rhs.y - x * rhs.z + y * rhs.w + z * rhs.x;
+        q.z = w * rhs.z + x * rhs.y - y * rhs.x + z * rhs.w;
+
+        return q;
+    }
+
+    void inv(){
+        xyz = xyz*(-1.0f);
+    }
+
+
+    // quat operator *(const quat other){
+        
+    // }
+
+    vec3 operator* (const vec3 v)const{
+
+ 
+
+        vec3 u(x, y, z);
+		vec3 uv = u.cross(v);
+
+
+		return v + ((uv * w) + u.cross(uv)) * (2.0);
+    }
+
+    mat3 operator* (const mat3 m)const{
+        mat3 ret;
+        ret.x = *this *m.x;
+        ret.y = *this *m.y;
+        ret.z = *this *m.z;
+        return ret;
+    }
+
+    void print(){
+        
+    }
+
+};
+
 
 struct mat4{
     vec4 x;
@@ -271,6 +498,23 @@ struct mat4{
         return ret;
     }
     
+    static mat4 simu_camera(mat4 cam_trans){
+        mat4 ret;
+        ret.w.xyz = -cam_trans.w.xyz;
+        //right
+        ret.x.x = cam_trans.x.x;
+        ret.y.x = cam_trans.x.y;
+        ret.z.x = cam_trans.x.z;
+        //up
+        ret.x.y = cam_trans.y.x;
+        ret.y.y = cam_trans.y.y;
+        ret.z.y = cam_trans.y.z;
+
+        ret.x.z = cam_trans.z.x;
+        ret.y.z = cam_trans.z.y;
+        ret.z.z = cam_trans.z.z;
+
+    }
 
     mat4(){
         x = vec4(1.f, 0.f, 0.f, 0.f);
@@ -313,79 +557,45 @@ struct mat4{
         return *this;
     }
 
+    mat4 rotate(quat qu){
+        mat4 ret = *this;
+        ret.x.xyz = qu * ret.x.xyz;
+        ret.y.xyz = qu * ret.y.xyz;
+        ret.z.xyz = qu * ret.z.xyz;
+
+        return ret;
+    }
+
 
 
     float* data(){
         return &x.x;
     }
 
-};
-
-struct quat{
-    union
-    {
-        struct{
-            float x;
-            float y;
-            float z;
-        };
-        vec3 xyz;
-        
-    };
-    float w;
-
-    quat(){
-        xyz = vec3(0,0,0);
-        w = 1;
-    }
-
-    quat(float p_x, float p_y, float p_z, float p_w){
-        x = p_x;
-        y = p_y;
-        z = p_z;
-        w = p_w;
-    }
-
-    quat(vec3 axis, float angle){
-        xyz = axis*sin(angle/2.0);
-        w = cos(angle/2.0)*1.0;
-    }
-
-    quat inv(){
-        xyz = xyz*(-1.0);
-    }
-
-
-    // quat operator *(const quat other){
-        
-    // }
-
-    vec3 operator* (const vec3 val)const{
-        vec3 ret;
-        ret = xyz*2.0f* xyz.dot(val);
-        auto t = val *  1;
-        auto tt = xyz.dot(xyz);
-        ret += val*( w*w - xyz.dot(xyz));
-        ret += xyz.cross(val)*2.0f*w;
-        return ret;
-    }
-
-    mat3 operator* (const mat3 m)const{
-        mat3 ret;
-        ret.x = *this *m.x;
-        ret.y = *this *m.y;
-        ret.z = *this *m.z;
-        return ret;
+    void print(){
+        printf("(%f,%f,%f,%f),", x.x, x.y, x.z, x.w);
+        printf("(%f,%f,%f,%f),", y.x, y.y, y.z, y.w);
+        printf("(%f,%f,%f,%f)", z.x, z.y, z.z, z.w);
+        printf("(%f,%f,%f,%f)", w.x, w.y, w.z, w.w);
     }
 
 };
 
 
-struct point{
-    vec3 vertex;
+struct Vertex{
+    vec3 pos;
     vec3 normal;
     vec2 uv;
     vec4 color;
+
+    Vertex (vec3 p_pos, vec2 p_uv = vec2()){
+        pos = p_pos;
+        uv = p_uv;
+    }
+
+    Vertex(){
+        
+    }
 };
 
 #endif

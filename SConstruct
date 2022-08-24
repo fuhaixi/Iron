@@ -1,5 +1,8 @@
-cpp_path = ['include']
+from xml.etree.ElementInclude import include
+
+
+cpp_path = ['./']
 libs = ['glfw', 'dl']
 flags = ['-g']
 
-Program('main', ['main.cpp', './include/glad/glad.c'], CPPPATH=cpp_path, LIBS=libs,CCFLAGS=flags)
+Program('main', ['main.cpp', 'driver/glad.c'], CPPPATH=cpp_path, LIBS=libs,CCFLAGS=flags)

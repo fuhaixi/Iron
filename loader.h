@@ -7,12 +7,17 @@
 #include"core/mesh.h"
 #include<cassert>
 
+#include <assimp/Importer.hpp>      // C++ importer interface
+#include <assimp/scene.h> 
+
 #define streq(a, b) strcmp(a, b)==0
 
 using std::vector;
 
 namespace Loader
 {
+
+
     
 Mesh ply2mesh(const char*file_name){
     FILE* fin = fopen(file_name, "r");
@@ -42,13 +47,13 @@ Mesh ply2mesh(const char*file_name){
 
     printf("property%d", property_num);
 
-    vector<point> points;
+    vector<Vertex> points;
     int count = property_num*v_num;
 
 
     for(int vi=0; vi<v_num; vi++){
-        point p;
-        fscanf(fin ,"%f %f %f", &p.vertex.x, &p.vertex.y, &p.vertex.z);
+        Vertex p;
+        fscanf(fin ,"%f %f %f", &p.pos.x, &p.pos.y, &p.pos.z);
         fscanf(fin ,"%f %f %f", &p.normal.x, &p.normal.y, &p.normal.z);
         fscanf(fin ,"%f %f", &p.uv.x, &p.uv.y);
         vec4i color;
