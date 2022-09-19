@@ -12,7 +12,6 @@ struct Rmesh
 struct Rshader
 {
     uint gid;
-
 };
 
 struct Rtexture{

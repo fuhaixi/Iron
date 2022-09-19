@@ -1,3 +1,5 @@
+#ifndef IRON_OS
+#define IRON_OS
 #include"core_structure.h"
 #include<GLFW/glfw3.h>
 #include <driver/gl.h>
@@ -26,10 +28,17 @@ public:
     static OS* instance;
     Cursor cursor;
     Window window;
-    vec2 cursor_pos;
-
+    static vec2 cursor_pos;
+    static double delta_time;
+    static vec2 cursor_relative;
+    static double time;
+    //int key, int scancode, int action, int mods
+    void (*key_callback) (int, int,int,int);
+    
 
 private:
+    static double last_time;
+    static vec2 last_cursor_pos;
     GLFWwindow * glfw_window;
 
     void glfw_window_init(){
@@ -56,13 +65,15 @@ private:
         instance->cursor.last_pos = instance->cursor.pos;
     }
 
-    static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode){
-        // printf("k:%d, scancode:%d", key, scancode);
+    static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods){
+        instance->key_callback(key, scancode, action, mods);
+        
     }
 
     static void error_callback(int error, const char* description)
     {
         fprintf(stderr, "Error: %s\n", description);
+        
     }
 
     
@@ -76,8 +87,15 @@ public:
         instance = this;
         glfwSetErrorCallback(error_callback);
         glfw_window_init();
-        glfwSetKeyCallback(glfw_window, key_callback);
+        glfwSetKeyCallback(glfw_window, glfw_key_callback);
+
         glfwSetCursorPosCallback(glfw_window, cursor_position_callback);
+    }
+
+    void set_key_callback(void (*call_back)(int,int,int,int)){
+        key_callback = call_back;
+        glfwSetKeyCallback(glfw_window, glfw_key_callback);
+
     }
 
     ~OS(){
@@ -104,6 +122,7 @@ public:
     }
 
     static bool get_key(int key){
+        
         return glfwGetKey(instance->glfw_window, key);
     }
 
@@ -115,6 +134,28 @@ public:
 
     }
 
+    static void frame_begin(){
+        glfwPollEvents();
+
+
+        time = glfwGetTime();
+        delta_time = time - last_time;
+
+        cursor_pos = get_cursor_pos();
+        cursor_relative = cursor_pos - last_cursor_pos;
+    }
+
+    static void frame_end(){
+        last_time = time;
+        last_cursor_pos = cursor_pos;
+
+        glfwGetFramebufferSize(instance->glfw_window, &instance->window.width, &instance->window.height);
+        swap_buffers();
+
+    }
+
+    
+
     static bool get_mouse_button(int button){
         int ret = glfwGetMouseButton(instance->glfw_window, button);
         
@@ -125,3 +166,13 @@ public:
 
 
 OS * OS::instance = NULL;
+
+double OS::time = 0;
+double OS::delta_time = 0;
+double OS::last_time = -0.02;
+vec2 OS::cursor_pos = vec2();
+vec2 OS::cursor_relative = vec2();
+vec2 OS::last_cursor_pos = vec2();
+
+
+#endif

@@ -13,13 +13,19 @@ public:
     std::vector<Vertex> points;
     std::vector<unsigned int > indices;
 
-    void add_polygon(std::vector<vec3>& pos_arr, std::vector<vec2>& uv_arr){
+    void add_polygon(std::vector<vec3>& pos_arr, std::vector<vec2>& uv_arr, bool inverse = false){
         int tnum = pos_arr.size() - 2;
         for (size_t i = 0; i < tnum; i++)
         {
             indices.push_back(points.size());
-            indices.push_back(points.size()+ i+ 1);
-            indices.push_back(points.size()+ i + 2);
+            if(inverse){
+                indices.push_back(points.size()+ i+ 2);
+                indices.push_back(points.size()+ i + 1);
+            }
+            else{
+                indices.push_back(points.size()+ i+ 1);
+                indices.push_back(points.size()+ i + 2);
+            }
             
         }
 
@@ -29,6 +35,10 @@ public:
             points.push_back(v);
         }
         
+    }
+
+    void add_grid(float width, float height, mat4 transform, int width_sub){
+
     }
 
     static Mesh quad(){
@@ -51,7 +61,7 @@ public:
         return ret;
     }
     
-    static Mesh box(float size){
+    static Mesh box(float size, bool flip_face = false){
         Mesh ret;
         std::vector<Vertex> points;
 
@@ -84,7 +94,7 @@ public:
                 }
             }
             
-            ret.add_polygon(vxpos_arr, uv_arr);
+            ret.add_polygon(vxpos_arr, uv_arr, flip_face);
         }
 
 
@@ -107,12 +117,12 @@ public:
 
         std::vector<vec3> vx_arr(4);
         vx_arr[0] = vec3(-0.5,0,-0.5);
-        vx_arr[1] = vec3(0.5,0,-0.5);
+        vx_arr[3] = vec3(0.5,0,-0.5);
         vx_arr[2] = vec3(0.5,0,0.5);
-        vx_arr[3] = vec3(-0.5,0,0.5);
+        vx_arr[1] = vec3(-0.5,0,0.5);
 
-        vec2 begin_pos(-width+unit_width/2, -depth+unit_depth/2);
-        vec2 begin_uv(unit_uv_width/2.0f, unit_uv_depth/2.0f);
+        vec2 begin_pos(-width/2+unit_width/2, -depth/2+unit_depth/2);
+        
         
         for (size_t di = 0; di < depth_sub; di++)
         {
@@ -125,17 +135,78 @@ public:
                     //sacle
                     v_arr[vi][0] = vx_arr[vi][0] * unit_width;
                     v_arr[vi][2] = vx_arr[vi][2] * unit_depth;
-                    u_arr[vi][0] = uv_arr[vi][0] * unit_uv_width;
-                    u_arr[vi][1] = uv_arr[vi][1] * unit_uv_depth;
+
 
                     //offset
                     v_arr[vi] += vec3(begin_pos.x + unit_width*wi, 0, begin_pos.y + unit_depth*di);
-                    u_arr[vi] += begin_uv + vec2(wi*unit_uv_width, di*unit_uv_depth);
+                    u_arr[vi] = vec2((v_arr[vi].x + width/2.0f)/width, (v_arr[vi].z + depth/2.0f)/depth);
                 }
                 ret.add_polygon(v_arr, u_arr);                
             }
         }
+
+        for (auto &&i : ret.points)
+        {
+            i.normal = vec3(0,1,0);
+        }
+        
         return ret;
+    }
+
+    static Mesh cubeSphere(float radius, int sub){
+        Mesh py = plane(1,1,sub,sub);
+        Mesh ny = py;
+        Mesh px = py;
+        Mesh nx = py;
+        Mesh pz = py;
+        Mesh nz = py;
+
+        py.transform_verts(mat4(mat3(), vec3(0,0.5,0)));
+        ny.transform_verts(mat4(mat3().scaled(vec3(-1,1,1)), vec3(0,-0.5,0)));
+        px.transform_verts(mat4(mat3(vec3(0,0,-1), PI/2), vec3(0.5,0,0)));
+        nx.transform_verts(mat4(mat3(vec3(0,0,1), PI/2), vec3(-0.5,0,0)));
+        pz.transform_verts(mat4(mat3(vec3(1,0,0), PI/2), vec3(0,0,0.5)));
+        nz.transform_verts(mat4(mat3(vec3(-1,0,0), PI/2), vec3(0,0,-0.5)));
+        
+        py.merge_with(ny);
+        py.merge_with(px);
+        py.merge_with(nx);
+        py.merge_with(pz);
+        py.merge_with(nz);
+
+        for (auto &&i : py.points)
+        {
+            i.pos = vec3(tan(i.pos.x*PI/4), tan(i.pos.y*PI/4), tan(i.pos.z*PI/4));
+            i.normal = i.pos.normalized();
+            i.pos = i.normal*radius;
+
+        }
+        
+        
+
+        return py;
+    }
+
+    void merge_with(const Mesh &other){
+        int last = points.size();
+
+        int last_size = indices.size();
+        points.insert(points.end(), other.points.begin(), other.points.end());
+        indices.resize(indices.size() +other.indices.size());
+        for (size_t i = 0; i < other.indices.size(); i++)
+        {
+            indices[last_size + i] = other.indices[i] + last;
+        }
+        
+    }
+
+    void transform_verts(mat4 transform){
+        for (size_t i = 0; i < points.size(); i++)
+        {
+            points[i].pos = transform * points[i].pos;
+        }
+        
+
     }
     
     Mesh(/* args */);
