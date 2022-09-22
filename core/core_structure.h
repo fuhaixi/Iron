@@ -72,8 +72,8 @@ struct vec2{
 
 
 struct vec2i{
-    float x;
-    float y;
+    int x;
+    int y;
 
     vec2i(){
         x=0;
@@ -90,7 +90,9 @@ struct vec2i{
         y = val;
     }
 
-
+    float aspect(){
+        return float(x)/float(y);
+    }
 };
 
 struct vec3{
@@ -322,6 +324,10 @@ struct vec4{
         w = _w;
     }
 
+    float dot(const vec4 other){
+        return x*other.x + y*other.y + z*other.z + w*other.w;
+    }
+
 
     float &operator [](const int index){
         switch (index%4)
@@ -433,6 +439,7 @@ struct mat3{
 
     mat3 transposed(){
         mat3 ret;
+        ret = *this;
         SWAP(ret.x[1], ret.y[0]);
         SWAP(ret.x[2], ret.z[0]);
         SWAP(ret.y[2], ret.z[1]);
@@ -625,8 +632,8 @@ struct mat4{
         mat4 ret;
         ret.x = vec4(2*near/width,0,0,0);
         ret.y = vec4(0, 2*near/height,0,0);
-        ret.z = vec4(0,0,-(far+near)/(far-near), -1);
-        ret.w = vec4(0,0,-2*far*near/(far-near),0);
+        ret.z = vec4(0,0,-2/(far-near), 0);
+        ret.w = vec4(0,0,-(far+near)/(far-near),1);
         return ret;
     }
 
@@ -643,24 +650,16 @@ struct mat4{
 
     static mat4 lookAt(vec3 const& eye, vec3 const& center, vec3 const& up)
 	{
-		vec3 const f(normalize(center - eye));
-		vec3 const s(normalize(cross(f, up)));
-		vec3 const u(cross(s, f));
+		vec3 const zaxis(normalize(eye - center));
+		vec3 const xaxis(normalize(cross(zaxis, up)));
+		vec3 const yaxis(cross(zaxis, xaxis));
 
-		mat4 Result;
-		Result.x.x = s.x;
-		Result.y.x = s.y;
-		Result.z.x = s.z;
-		Result.x.y = u.x;
-		Result.y.y = u.y;
-		Result.z.y = u.z;
-		Result.x.z =-f.x;
-		Result.y.z =-f.y;
-		Result.z.z =-f.z;
-		Result.z.x =-dot(s, eye);
-		Result.z.y =-dot(u, eye);
-		Result.z.z = dot(f, eye);
-		return Result;
+        mat4 rotation(mat3(xaxis, yaxis, zaxis), vec3());
+        mat4 translation(mat3(), eye);
+
+        mat4 ret = translation*rotation ;
+		
+		return ret;
 	}
 
     mat4(){
@@ -670,7 +669,21 @@ struct mat4{
         w = vec4(0.f, 0.f, 0.f, 1.f);
     }
 
-    
+    vec4 row_x(){
+        return vec4(x.x, y.x, z.x, w.x);
+    }
+
+    vec4 row_y(){
+        return vec4(x.y, y.y, z.y, w.y);
+    }
+
+    vec4 row_z(){
+        return vec4(x.z, y.z, z.z, w.z);
+    }
+
+    vec4 row_w(){
+        return vec4(x.w, y.w, z.w, w.w);
+    }
 
     mat4(mat3 basis, vec3 position){
         x.xyz = basis.x;
@@ -750,6 +763,21 @@ struct mat4{
         return mat3(x.xyz, y.xyz, z.xyz);
     }
 
+    mat4 operator*(const mat4 other){
+        mat4 ret;
+        vec4 rx = row_x();
+        vec4 ry = row_y();
+        vec4 rz = row_z();
+        vec4 rw = row_w();
+
+        ret.x = vec4(rx.dot(other.x), ry.dot(other.x), rz.dot(other.x), rw.dot(other.x) );
+        ret.y = vec4(rx.dot(other.y), ry.dot(other.y), rz.dot(other.y), rw.dot(other.y) );
+        ret.z = vec4(rx.dot(other.z), ry.dot(other.z), rz.dot(other.z), rw.dot(other.z) );
+        ret.w = vec4(rx.dot(other.w), ry.dot(other.w), rz.dot(other.w), rw.dot(other.w) );
+
+        return ret;
+    }
+
     vec3 operator*(const vec3& v){
         return basis()*v + w.xyz;
     }
@@ -764,6 +792,8 @@ struct mat4{
         printf("(%f,%f,%f,%f)", z[0], z[1], z[2], z[3]);
         printf("(%f,%f,%f,%f)", w[0], w[1], w[2], w[3]);
     }
+
+    
 
 };
 

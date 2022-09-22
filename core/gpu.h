@@ -6,6 +6,7 @@
 #include<vector>
 #include"gpu_structure.h"
 #include "img.h"
+#include "viewer.h"
 
 class GPU
 {
@@ -14,6 +15,8 @@ private:
     std::vector<Rshader> shaders;
     std::vector<Rtexture> textures;
     uint shader_id;
+    Rshader simple_shader;
+    Rmesh quad;
 
 public:
     void render_object(Object& obj){
@@ -44,6 +47,29 @@ public:
         Rshader rs;
         rs.gid = id;
         shaders.push_back(rs);
+        
+        return rs;
+    }
+
+    Rshader shaders_new_from_file(const char* vshader_file_name, const char* fshader_file_name){
+        std::ifstream t(vshader_file_name);
+        std::stringstream vbuffer;
+        vbuffer << t.rdbuf();
+        vbuffer.str().c_str();
+
+        std::ifstream tt(fshader_file_name);
+        std::stringstream fbuffer;
+        fbuffer << tt.rdbuf();
+        fbuffer.str().c_str();
+
+        
+
+        
+        uint id = GL::create_shader_program(vbuffer.str().c_str(), fbuffer.str().c_str(), fshader_file_name);
+        Rshader rs;
+        rs.gid = id;
+        shaders.push_back(rs);
+
         
         return rs;
     }
@@ -95,6 +121,7 @@ public:
 
         Rtexture rt;
         rt.gid = textureColorbuffer;
+        rt.size = vec2i(width, height);
         textures.push_back(rt);
 
         return rt;
@@ -110,25 +137,48 @@ public:
 
     Rtexture depth_texture_new(unsigned int width, unsigned int height){
         
+        // create depth texture
         unsigned int depthMap;
         glGenTextures(1, &depthMap);
         glBindTexture(GL_TEXTURE_2D, depthMap);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 
-                    width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);  
-
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+        glBindTexture(GL_TEXTURE_2D, 0);
         Rtexture rt;
         rt.gid = depthMap;
+        rt.size = vec2i(width, height);
         textures.push_back(rt);
 
         return rt;
     }
 
+    Rframebuff depth_framebuffer_new(Rtexture depth_map){
+        Rframebuff ret;
+        unsigned int depthMapFBO;
+        glGenFramebuffers(1, &depthMapFBO);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_map.gid, 0);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+        ret.size = depth_map.size;
+        ret.gid = depthMapFBO;
+        return ret;
+    }
 
+    void use_frame(Rframebuff rf){
+        glViewport(0, 0, rf.size.x, rf.size.y);
+        glBindFramebuffer(GL_FRAMEBUFFER, rf.gid);
+        
+    }
+
+  
 
     void bind_tex_at(Rtexture& rt , unsigned int pos){
         
@@ -176,13 +226,17 @@ public:
 
     }
     
-
+    void shader_set_viewer(Viewer viewer){
+        shader_set("view", viewer.view);
+        shader_set("projectionn", viewer.projection);
+    }
 
     
     
 
     GPU(/* args */){
-
+        
+        
     }
     ~GPU(){
 

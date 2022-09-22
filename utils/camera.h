@@ -10,6 +10,7 @@ private:
 public:
     mat4 transform;
     mat4 begin_transform;
+    mat4 projection;
     Camera* current;
 
     vec3 center;
@@ -23,6 +24,11 @@ public:
 
     mat4 get_view_mat(){
         return transform.inv();
+    }
+
+    void set_projection(float far, float near, float fov, float aspect){
+        float width = near*fov;
+        projection =  mat4::persp(far, near, width, width/aspect);
     }
 
     void _process(){

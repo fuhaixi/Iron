@@ -15,113 +15,6 @@
 #include "core/gpu.h"
 #include "utils/camera.h"
 
-const char* vshader_s = R"(
-    #version 330 core
-    layout (location = 0) in vec3 apos;
-    layout (location = 1) in vec3 anormal;
-    layout (location = 2) in vec2 auv;
-    layout (location = 3) in vec4 acolor;
-
-
-    out vec2 uv;
-    out vec4 color;
-    out vec3 normal;
-    out vec3 frag_pos;
-
-    uniform mat4 transform;
-    uniform mat4 model;
-    uniform mat4 view;
-    uniform mat4 projection;
-
-    void main(){
-        gl_Position = projection*view*model*vec4(apos, 1.0f);
-        uv = auv;
-        color = acolor;
-        normal = (model *vec4(anormal, 0)).xyz;
-
-        frag_pos = (model * vec4(apos, 1.0f)).xyz;
-    }
-)";
-
-const char* color_fshader_s=R"(
-    #version 330 core
-    out vec4 FragColor;
-    uniform vec3 color;
-    void main(){
-        //world space
-        
-        FragColor = vec4(color, 1);
-        //FragColor = vec4(uv, 1.0, 1.0);
-    }
-)";
-
-const char* sky_box_vshader_s=R"(
-    #version 330 core
-    layout (location = 0) in vec3 apos;
-    layout (location = 1) in vec3 anormal;
-    layout (location = 2) in vec2 auv;
-    layout (location = 3) in vec4 acolor;
-
-
-    out vec3 tex_coord;
-    uniform mat4 view;
-    uniform mat4 projection;
-
-    void main(){
-        tex_coord = apos;
-        mat4 _view = view;
-        _view[3].xyz = vec3(0);
-        vec4 pos = projection*_view*vec4(apos, 1.0f);
-        gl_Position = pos.xyzw;
-       
-    }
-)";
-
-const char* sky_box_fshader_s=R"(
-    #version 330 core
-    out vec4 FragColor;
-    in vec3 tex_coord;
-
-    uniform samplerCube sky_box;
-    void main(){
-        FragColor = texture(sky_box, tex_coord);
-        // FragColor = vec4(1.);
-    }
-)";
-
-const char* phong_fshader_s= R"(
-    #version 330 core
-    out vec4 FragColor;
-    in vec2 uv;
-    in vec4 color;
-    in vec3 normal;
-    in vec3 frag_pos;
-
-    uniform vec3 light_pos;
-    uniform sampler2D albedo;
-    uniform vec3 light_color;
-    uniform vec3 ambient;
-    uniform vec3 camera_pos;
-
-    void main(){
-        //world space
-        vec3 N = normalize(normal);
-        vec3 L = normalize(light_pos);
-        vec3 R = reflect(-L, N);
-        vec3 E = normalize(camera_pos - frag_pos);
-
-        float diffuse = max(dot(N, L), 0.0);
-        float specular = pow(max(dot(R,E),0.0), 5.);
-        vec3 diffuse_color = diffuse * light_color;
-        vec3 specular_color = specular * vec3(0,0,1.);
-        
-
-        vec3 Color = texture(albedo, uv).xyz * (diffuse_color +specular_color + ambient) ;
-        FragColor = vec4(Color, 1);
-        //FragColor = vec4(uv, 1.0, 1.0);
-    }
-)";
-
 
 
 
@@ -157,34 +50,45 @@ void key_callback(int key, int scancode, int action, int mods){
 
 
 int main(){
-    
-    test();
-
-    OS os;
+    OS os(500, 600);
     os.key_callback = key_callback;
     now_time = OS::getTime();
     last_time = now_time;
 
-
+    const int SHADOW_WIDTH = 2048;
+    const int SHADOW_HEIGHT = 2048;
+    
 
     Camera cam;
     cam.begin_transform = mat4(mat3(), vec3(0,0,5));
+    cam.set_projection(100, 0.1, 1, os.window_aspect);
     
     GPU gpu;
-    Rshader normal_shader = gpu.shaders_new(vshader_s, phong_fshader_s);
-    Rshader color_shader = gpu.shaders_new(vshader_s, color_fshader_s);
-    Rshader skybox_shader = gpu.shaders_new(sky_box_vshader_s, sky_box_fshader_s);
+
+    Rtexture depth_map = gpu.depth_texture_new(SHADOW_WIDTH, SHADOW_HEIGHT);
+
+    Rframebuff shadow_framebuff = gpu.depth_framebuffer_new(depth_map);
+
+   
+
+    Rshader simple_shader =gpu.shaders_new_from_file("./asset/shaders/tex_quad.vs", "./asset/shaders/tex_quad.fs");
+    Rmesh quad = gpu.meshes_new( Mesh::quad());
+
+    Rshader normal_shader = gpu.shaders_new_from_file("./asset/shaders/basic.vs", "./asset/shaders/basic.fs");
+    Rshader color_shader = gpu.shaders_new_from_file("./asset/shaders/basic.vs", "./asset/shaders/color.fs");
+    Rshader skybox_shader = gpu.shaders_new_from_file("./asset/shaders/skybox.vs", "./asset/shaders/skybox.fs");
+    Rshader light_shader = gpu.shaders_new_from_file("./asset/shaders/simple.vs", "./asset/shaders/empty.fs");
 
 
     Mesh mesh = Mesh::cubeSphere(1,10);
     Rmesh rmesh_box = gpu.meshes_new(mesh);
-    Rmesh rmesh_plane = gpu.meshes_new(Mesh::plane(10,10,2,2));
+    Rmesh rmesh_plane = gpu.meshes_new(Mesh::plane(6,6,2,2));
     Rmesh sky_box_mesh = gpu.meshes_new(Mesh::box(1., true));
+    Rmesh sky_box_mesh2 = gpu.meshes_new(Mesh::box(10., true));
     
     Img img = Img("./asset/Untitled.png");
     Rtexture rtex = gpu.texture_new(img);
 
-    // Img aa = Img("./asset/skybox/right.jpg");
     Img faces[6];
     faces[0] = Img("./asset/skybox/right.jpg");
     faces[1] = Img("./asset/skybox/left.jpg");
@@ -195,7 +99,6 @@ int main(){
     faces[5] = Img("./asset/skybox/back.jpg");
 
     Rtexture cubemap = gpu.cubemap_new(faces);
-    
 
     //must use shader before set uniform
     gpu.use(normal_shader);
@@ -203,55 +106,106 @@ int main(){
     gpu.shader_set("albedo", 0);
 
     mat4 trans(mat3(), vec3(0,0,0));
-
-
-    mat3 basis = mat3();
-    mat4 projection = mat4::persp(100, 0.1, 0.1, 0.1);
-    mat4 cam_transform;
-    cam_transform = mat4(mat3(), vec3(0,0,5));
-
-
-
-    gpu.shader_set("light_pos", vec3(3,3,3));
+    
+    vec3 light_dir = vec3(-2.0f, 4.0f, -1.0f);
     gpu.shader_set("light_color", vec3(1,1,1));
     gpu.shader_set("ambient", vec3(0.2));
+    
+    vec3 scene_center(0);
+    mat4 light_transform = mat4::lookAt(vec3(0,3, 3), scene_center, vec3(0,1,0));
+    mat4 light_view = light_transform.inv();
+    mat4 light_projection =  mat4::ortho(8,.1, 3, 3);
+    gpu.shader_set("light_dir", light_transform.w.xyz - scene_center);
+
+    
+    gpu.use(light_shader);
+    gpu.shader_set("view", light_view);
+    gpu.shader_set("projection", light_projection);
+
+    gpu.use(color_shader);
+    gpu.shader_set("color", vec3(1,1,1));
     
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK); 
-    vec2 cam_mv;
+  
+    while(true){
 
-
-    vec2 last_cursor_pos;
-    vec2 cursor_pos;
-
-    vec3 eye(0,0,5);
-    vec3 target;
-
-    
-
-    while (true)
-    {
         if(OS::get_key(256)) break;//esc
 
         OS::frame_begin();
+        cam.set_projection(100, 0.1, 1, os.window_aspect);
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         // gpu.bind_cubemap_at(cubemap, 0);
-
         cam._process();
+
+        // shadow map
+        gpu.use_frame(shadow_framebuff);
+        glClear(GL_DEPTH_BUFFER_BIT);
+
+        light_transform = mat4::lookAt( vec3(sin(OS::time*.1)*3,3, cos(OS::time*.1)*3),scene_center, vec3(0,1,0));
+        light_view = light_transform.inv();
+
+
+        gpu.use(light_shader);
+        gpu.shader_set("view", light_view);
+        gpu.shader_set("projection", light_projection);
+
+        gpu.shader_set("model", mat4());
+        
+        gpu.render(rmesh_box);
+
+        gpu.shader_set("model", mat4(mat3(), vec3(0,-1,0)));
+        gpu.render(rmesh_plane);
+
+        
+        gpu.use_frame(os.default_frame);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+        
+
+        //pass2
+        gpu.use_frame(os.default_frame);
+        gpu.bind_tex_at(rtex, 0);
+        gpu.bind_tex_at(depth_map, 1);
+        gpu.use(normal_shader);
+        gpu.shader_set("albedo", 0);
+        gpu.shader_set("shadow_map", 1);
+        gpu.shader_set("light_view", light_view);
+        gpu.shader_set("light_projection", light_projection);
+        gpu.shader_set("light_dir", light_transform.w.xyz);
+        
+        gpu.shader_set("view", cam.get_view_mat());
+        gpu.shader_set("projection", cam.projection);
+        gpu.shader_set("camera_pos", cam.transform.w.xyz);
+
+        gpu.shader_set("model", mat4(mat3(), vec3(0,0,0)));
+        
+        gpu.render(rmesh_box);
+
+        gpu.shader_set("model", mat4(mat3(), vec3(0,-1,0)));
+        gpu.render(rmesh_plane);
+
+        //light
+        gpu.use(color_shader);
+        gpu.shader_set("model", light_transform);
+        gpu.shader_set("view", cam.get_view_mat());
+        gpu.shader_set("projection", cam.projection);
+        gpu.render(rmesh_box);
+
+        //sky box
         gpu.bind_tex_at(rtex, 0);
         gpu.use(skybox_shader);
         gpu.shader_set("sky_box", 0);
         gpu.shader_set("view", cam.get_view_mat());
-        gpu.shader_set("projection", projection);
-
+        gpu.shader_set("projection", cam.projection);
+        glDepthFunc(GL_LEQUAL);
         gpu.render(sky_box_mesh);
-        
+        glDepthFunc(GL_LESS);
 
-        glViewport(0, 0 ,OS::instance->window.width, OS::instance->window.height);
+
 
         OS::frame_end();
     }

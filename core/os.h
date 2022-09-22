@@ -1,6 +1,7 @@
 #ifndef IRON_OS
 #define IRON_OS
 #include"core_structure.h"
+#include"gpu_structure.h"
 #include<GLFW/glfw3.h>
 #include <driver/gl.h>
 
@@ -27,14 +28,15 @@ class OS
 public:
     static OS* instance;
     Cursor cursor;
-    Window window;
     static vec2 cursor_pos;
     static double delta_time;
     static vec2 cursor_relative;
     static double time;
     //int key, int scancode, int action, int mods
     void (*key_callback) (int, int,int,int);
-    
+    vec2i window_size;
+    float window_aspect;
+    Rframebuff default_frame;
 
 private:
     static double last_time;
@@ -45,16 +47,20 @@ private:
         glfwInit();
 
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-        glfw_window = glfwCreateWindow(480, 480, "My Title", NULL, NULL);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+        glfw_window = glfwCreateWindow(window_size.x, window_size.y, "My Title", NULL, NULL);
         if (!glfw_window)
         {
             fprintf(stderr, "ERROR: glfw_window or OpenGL context creation failed");
         }
         glfwMakeContextCurrent(glfw_window);
-        gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
-        
+        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+        {
+            std::cout << "Failed to initialize GLAD" << std::endl;
+            return;
+        }
 
         printf("%s\n", glGetString(GL_VERSION));
     }
@@ -81,9 +87,16 @@ private:
 public:
     
     
-    OS(/* args */){
+    OS(int width = 800, int height = 600){
         if(instance != NULL) free(instance);
 
+        window_size.x = width;
+        window_size.y = height;
+
+        default_frame.gid = 0;
+        default_frame.size = window_size;
+        
+        window_aspect = window_size.aspect();
         instance = this;
         glfwSetErrorCallback(error_callback);
         glfw_window_init();
@@ -105,20 +118,6 @@ public:
 
     static double getTime(){
         return glfwGetTime();
-    }
-
-    static void swap_buffers(){
-        glfwSwapBuffers(instance->glfw_window);
-    }
-
-    static void get_frame_buffer(){
-        glfwGetFramebufferSize(instance->glfw_window, &instance->window.width, &instance->window.height);
-
-    }
-
-    static void poll_event(){
-        glfwPollEvents();
-
     }
 
     static bool get_key(int key){
@@ -149,8 +148,10 @@ public:
         last_time = time;
         last_cursor_pos = cursor_pos;
 
-        glfwGetFramebufferSize(instance->glfw_window, &instance->window.width, &instance->window.height);
-        swap_buffers();
+        glfwGetFramebufferSize(instance->glfw_window, &instance->window_size.x, &instance->window_size.y);
+        instance->default_frame.size = instance->window_size;
+        instance->window_aspect = instance->window_size.aspect();
+        glfwSwapBuffers(instance->glfw_window);
 
     }
 

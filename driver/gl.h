@@ -8,7 +8,7 @@
 namespace GL
 {
 
-GLuint create_shader_program(const char* vshader_source, const char * fshader_source){
+GLuint create_shader_program(const char* vshader_source, const char * fshader_source, const char* name = ""){
     
     GLuint vshader;
     vshader  = glCreateShader(GL_VERTEX_SHADER);
@@ -20,7 +20,7 @@ GLuint create_shader_program(const char* vshader_source, const char * fshader_so
     glGetShaderiv(vshader, GL_COMPILE_STATUS, &vshader_success);
     if(!vshader_success){
         glGetShaderInfoLog(vshader, 512, NULL, vshader_infolog);
-        fprintf(stderr, "vshader: %s",vshader_infolog);
+        fprintf(stderr, "%s::vshader: %s",name,vshader_infolog);
     }
 
     GLuint fshader;
@@ -32,7 +32,7 @@ GLuint create_shader_program(const char* vshader_source, const char * fshader_so
     glGetShaderiv(fshader, GL_COMPILE_STATUS, &fshader_success);
     if(!fshader_success){
         glGetShaderInfoLog(fshader, 512, NULL, fshader_infolog);
-        fprintf(stderr, "fshader %s", fshader_infolog);
+        fprintf(stderr, "%s::fshader %s",name, fshader_infolog);
     }
 
 
@@ -47,7 +47,7 @@ GLuint create_shader_program(const char* vshader_source, const char * fshader_so
     glGetShaderiv(shader_program, GL_LINK_STATUS, &link_success);
     if(!link_success){
         glGetShaderInfoLog(shader_program, 512, NULL, link_infolog);
-        fprintf(stderr, "link  error%s", link_infolog);
+        fprintf(stderr, "%s::link error%s",name, link_infolog);
     }
 
     glDeleteShader(fshader);

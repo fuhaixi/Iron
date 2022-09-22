@@ -16,7 +16,15 @@ struct Rshader
 
 struct Rtexture{
     uint gid;
+    vec2i size;
 };
+
+struct Rframebuff
+{
+    vec2i size;
+    uint gid;
+};
+
 
 
 
