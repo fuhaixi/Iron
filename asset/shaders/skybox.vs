@@ -1,8 +1,8 @@
 #version 330 core
 layout (location = 0) in vec3 apos;
-layout (location = 1) in vec3 anormal;
+layout (location = 1) in vec4 acolor;
 layout (location = 2) in vec2 auv;
-layout (location = 3) in vec4 acolor;
+layout (location = 3) in vec3 anormal;
 
 
 out vec3 tex_coord;

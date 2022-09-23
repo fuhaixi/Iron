@@ -6,6 +6,8 @@
 #include<string.h>
 #include<iostream>
 
+#define SHORT_U 1.525902189e-05F
+
 #define SWAP(m_x, m_y) __swap_tmpl((m_x), (m_y))
 template <class T>
 inline void __swap_tmpl(T &x, T &y) {
@@ -14,8 +16,18 @@ inline void __swap_tmpl(T &x, T &y) {
 	y = aux;
 }
 
+inline float clamp(float val, float min, float max){
+    if(val<min) val =min;
+    else if (val>max) val = max;
+    
+    return val;
+};
+
 
 #define PI 3.14159265358979323846 
+
+
+
 
 struct vec2{
     union 
@@ -67,6 +79,10 @@ struct vec2{
 
     float& operator [](const int index){
         return components[index%2];
+    }
+
+    void print(){
+        printf("(%f,%f)", x, y);
     }
 };
 
@@ -176,6 +192,12 @@ struct vec3{
         this->z *= other.z;
     }
 
+    void operator /=(const vec3 other){
+        this->x /= other.x;
+        this->y /= other.y;
+        this->z /= other.z;
+    }
+
     vec3 operator +(const vec3 other)const{
         return vec3(x+other.x, y+other.y, z+other.z);
     }
@@ -218,6 +240,12 @@ struct vec3{
         return vec3(x*val, y*val, z*val);
     }
 
+    vec3 operator/(float val)const{
+
+
+        return vec3(x/val, y/val, z/val);
+    }
+
     float & operator[](const int index){
         
         return components[index%3];
@@ -250,6 +278,8 @@ vec3 normalize(vec3 v){
     return v.normalized();
 }
 
+
+
 struct vec3i{
     int x;
     int y;
@@ -280,7 +310,7 @@ struct vec3i{
     }
 
     void print(){
-        printf("{%d, %d, %d}", x,y,z);
+        printf("(%d, %d, %d)", x,y,z);
     }
 };
 
@@ -346,8 +376,12 @@ struct vec4{
         return x;
     }
 
-    
+    void print(){
+        printf("(%f, %f, %f, %f)", x,y,z,w);
+    }
 };
+
+
 
 struct vec4i{
   int x,y,z,w;
@@ -382,6 +416,73 @@ struct vec4i{
         return color;
     }
 
+};
+
+
+struct color{
+    union 
+    {
+        struct 
+        {//byte order
+        unsigned char a;
+        unsigned char b;
+        unsigned char g;
+        unsigned char r;
+        };
+        
+        unsigned int code;
+    };
+    
+    color(){
+        code = 0;
+    }
+
+    //!Take notice that byte 
+    color(unsigned int _code){
+        code = _code;
+    }
+
+    color(float _r, float _g, float _b, float _a){
+        
+        r = _r*255;
+        g = _g*255;
+        b = _b*255;
+        a = _a*255;
+    }
+
+    color(int _r, int _g, int _b, int _a){
+        
+        r = _r;
+        g = _g;
+        b = _b;
+        a = _a;
+    }
+
+
+    color operator*(float val){
+        color ret(
+        r * val,
+        g * val,
+        b * val,
+        a * val
+        );
+
+        return ret;
+    }
+
+    vec3 to_vec3(){
+        vec3 ret(r/255.f, g/255.f, b/255.f);
+        return ret;
+    }
+
+    vec4 to_vec4(){
+        vec4 ret(r/255.f, g/255.f, b/255.f, a/255.f);
+        return ret;
+    }
+
+    void print(){
+       to_vec4().print();
+    }
 };
 
 struct mat3{
@@ -793,16 +894,81 @@ struct mat4{
         printf("(%f,%f,%f,%f)", w[0], w[1], w[2], w[3]);
     }
 
-    
-
 };
 
+namespace LowPrecision
+{
+    struct uvec2_01{
+        unsigned short x;
+        unsigned short y;
 
-struct Vertex{
+        uvec2_01(vec2 val){
+            //clamp to 01
+            val.x = clamp(val.x, 0, 1);
+            val.y = clamp(val.y, 0, 1);
+            
+           
+            x = val.x/SHORT_U;
+            y = val.y/SHORT_U;
+        }
+
+        vec2 to_vec2(){
+            vec2 ret;
+            ret.x = x*SHORT_U;
+            ret.y = y*SHORT_U;
+
+            return ret;
+        }
+
+        void print(){
+            to_vec2().print();
+        }
+    };
+
+    struct vec3_01
+    {
+        short x;
+        short y;
+        short z;
+
+        vec3_01(vec3 val){
+            //clamp to -1 1
+            val.x = clamp(val.x, -1, 1);
+            val.y = clamp(val.y, -1, 1);
+            val.z = clamp(val.z, -1, 1);
+            const float u = 2.f/65535;
+
+            x = val.x/u;
+            y = val.y/u;
+            z = val.z/u;
+            
+        }
+
+        vec3 to_vec3(){
+            const float u = 2.f/65534;
+
+            vec3 ret;
+            ret.x = x*u;
+            ret.y = y*u;
+            ret.z = z*u;
+            return ret;
+        }
+
+        void print(){
+            to_vec3().print();
+        }
+    };
+    
+}
+
+
+
+struct  Vertex{
     vec3 pos;
     vec3 normal;
     vec2 uv;
     vec4 color;
+    
 
     Vertex (vec3 p_pos, vec2 p_uv = vec2()){
         pos = p_pos;

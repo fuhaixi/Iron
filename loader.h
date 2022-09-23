@@ -19,78 +19,78 @@ namespace Loader
 
 
     
-Mesh ply2mesh(const char*file_name){
-    FILE* fin = fopen(file_name, "r");
-    if(fin == NULL){
-        printf("no such file");
-        return Mesh();
-    }
+// Mesh ply2mesh(const char*file_name){
+//     FILE* fin = fopen(file_name, "r");
+//     if(fin == NULL){
+//         printf("no such file");
+//         return Mesh();
+//     }
 
-    char buf[512];
-    int property_num=0;
-    int v_num =0;
-    int f_num =0;
+//     char buf[512];
+//     int property_num=0;
+//     int v_num =0;
+//     int f_num =0;
 
-    while (fscanf(fin, "%s", buf)== 1){
-        if(streq(buf, "end_header")) break;
+//     while (fscanf(fin, "%s", buf)== 1){
+//         if(streq(buf, "end_header")) break;
 
-        if(strcmp(buf, "vertex")==0){
-            fscanf(fin, "%d", &v_num);
-        }
+//         if(strcmp(buf, "vertex")==0){
+//             fscanf(fin, "%d", &v_num);
+//         }
 
-        if(strcmp(buf, "property")==0) property_num++;
+//         if(strcmp(buf, "property")==0) property_num++;
 
-        if(strcmp(buf, "face")==0){
-            fscanf(fin, "%d", &f_num);
-        }
-    }
+//         if(strcmp(buf, "face")==0){
+//             fscanf(fin, "%d", &f_num);
+//         }
+//     }
 
-    printf("property%d", property_num);
+//     printf("property%d", property_num);
 
-    vector<Vertex> points;
-    int count = property_num*v_num;
+//     vector<Vertex> points;
+//     int count = property_num*v_num;
 
 
-    for(int vi=0; vi<v_num; vi++){
-        Vertex p;
-        fscanf(fin ,"%f %f %f", &p.pos.x, &p.pos.y, &p.pos.z);
-        fscanf(fin ,"%f %f %f", &p.normal.x, &p.normal.y, &p.normal.z);
-        fscanf(fin ,"%f %f", &p.uv.x, &p.uv.y);
-        vec4i color;
-        fscanf(fin ,"%d %d %d %d", &color.x, &color.y, &color.z, &color.w);
-        p.color = color.byte2float();
-        points.push_back(p);
-    }
+//     for(int vi=0; vi<v_num; vi++){
+//         Vertex p;
+//         fscanf(fin ,"%f %f %f", &p.pos.x, &p.pos.y, &p.pos.z);
+//         fscanf(fin ,"%f %f %f", &p.normal.x, &p.normal.y, &p.normal.z);
+//         fscanf(fin ,"%f %f", &p.uv.x, &p.uv.y);
+//         vec4i color;
+//         fscanf(fin ,"%d %d %d %d", &color.x, &color.y, &color.z, &color.w);
+//         p.color = color.byte2float();
+//         points.push_back(p);
+//     }
     
 
-    vector<unsigned int> indices;
-    for(int i=0; i<f_num; i++){
+//     vector<unsigned int> indices;
+//     for(int i=0; i<f_num; i++){
         
-        int poly;
-        fscanf(fin,"%d", &poly);
+//         int poly;
+//         fscanf(fin,"%d", &poly);
 
-        vector<int> polygon;
-        for(int vi=0; vi<poly; vi++){
-            int index;
-            fscanf(fin,"%d", &index);
-            polygon.push_back(index);
-        }
+//         vector<int> polygon;
+//         for(int vi=0; vi<poly; vi++){
+//             int index;
+//             fscanf(fin,"%d", &index);
+//             polygon.push_back(index);
+//         }
 
-        for(int vi=1; vi<poly-1; vi++){
-            indices.push_back(polygon[0]);
-            indices.push_back(polygon[vi]);
-            indices.push_back(polygon[vi+1]);
-        }
-    }
-
-    
-
-
-    Mesh mesh= Mesh(points, indices);
+//         for(int vi=1; vi<poly-1; vi++){
+//             indices.push_back(polygon[0]);
+//             indices.push_back(polygon[vi]);
+//             indices.push_back(polygon[vi+1]);
+//         }
+//     }
 
     
-    return mesh;
-}
+
+
+//     Mesh mesh= Mesh(points, indices);
+
+    
+//     return mesh;
+// }
     
 } 
 

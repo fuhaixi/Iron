@@ -17,7 +17,7 @@ public:
 
     unsigned char* data = 0;
     Img(/* args */); 
-    Img(const char* path);
+    Img(const char* path, bool flip_v = true);
     Img(const Img& other);
     ~Img();
 };
@@ -48,8 +48,9 @@ Img::Img(const Img& other){
     
 // }
 
-Img::Img(const char* path){
+Img::Img(const char* path, bool flip_v){
     int x,y,c;
+    stbi_set_flip_vertically_on_load(flip_v); 
     data = stbi_load(path,&x,&y,&c,0);
     if(!data){
         free(data);

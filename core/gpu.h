@@ -33,9 +33,53 @@ public:
     }
 
     Rmesh meshes_new(const Mesh& mesh){
-        unsigned int id = GL::create_vao_withmesh(mesh);
+        GLuint VAO;
+        GLuint VBO;
+        GLuint EBO;
+        
+        glGenVertexArrays(1, &VAO);
+        glGenBuffers(1, &EBO);
+        glGenBuffers(1, &VBO);
+
+        glBindVertexArray(VAO);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*mesh.indices.size(), mesh.indices.data(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, (sizeof(vec3)*3+ sizeof(color)+sizeof(vec2))*mesh.pos_arr.size(), NULL, GL_STATIC_DRAW);
+
+
+        size_t offset = 0;
+        glBufferSubData(GL_ARRAY_BUFFER, offset, sizeof(vec3)*mesh.pos_arr.size(), mesh.pos_arr.data());
+        size_t col_offset = offset + sizeof(vec3)*mesh.pos_arr.size();
+        glBufferSubData(GL_ARRAY_BUFFER, col_offset, sizeof(color)*mesh.col_arr.size(), mesh.col_arr.data());
+        size_t uv_offset = col_offset + sizeof(color)*mesh.col_arr.size();
+        glBufferSubData(GL_ARRAY_BUFFER, uv_offset, sizeof(vec2)*mesh.uv_arr.size(), mesh.uv_arr.data());
+        size_t normal_offset =  uv_offset + sizeof(vec2)*mesh.uv_arr.size();
+        glBufferSubData(GL_ARRAY_BUFFER, normal_offset, sizeof(vec3)*mesh.normal_arr.size(), mesh.normal_arr.data());
+        size_t tangent_offset = normal_offset+ sizeof(vec3)*mesh.normal_arr.size();
+        glBufferSubData(GL_ARRAY_BUFFER, tangent_offset, sizeof(vec3)*mesh.tangent_arr.size(), mesh.tangent_arr.data());
+
+
+        glEnableVertexAttribArray(0);//vertex
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), 0);  
+
+        glEnableVertexAttribArray(1);//col
+        glVertexAttribPointer(1, 4, GL_BYTE, GL_TRUE, sizeof(color), (void*)(col_offset));
+
+        glEnableVertexAttribArray(2);//uv
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(vec2), (void*)(uv_offset));
+
+        glEnableVertexAttribArray(3);//normal
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)(normal_offset));
+        
+        glEnableVertexAttribArray(4);//tangent
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)(tangent_offset));
+
+        glBindVertexArray(0);
+
         Rmesh rm;
-        rm.gid = id;
+        rm.gid = VAO;
         rm.size = mesh.indices.size();
         meshes.push_back(rm);
 
@@ -178,7 +222,6 @@ public:
         
     }
 
-  
 
     void bind_tex_at(Rtexture& rt , unsigned int pos){
         

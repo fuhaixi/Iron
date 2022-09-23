@@ -107,36 +107,7 @@ GLuint create_fshader(const char* source){
     return fshader;
 }
 
-GLuint create_vao_withmesh(const Mesh& p_mesh){
-    GLuint VAO;
-    GLuint VBO;
-    GLuint EBO;
-    
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &EBO);
-    glGenBuffers(1, &VBO);
 
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*p_mesh.indices.size(), p_mesh.indices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex)*p_mesh.points.size(), p_mesh.points.data(), GL_STATIC_DRAW);
-
-
-    glEnableVertexAttribArray(0);//vertex
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
-    glEnableVertexAttribArray(1);//normal
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(vec3));
-    glEnableVertexAttribArray(2);//uv
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(2*sizeof(vec3)));
-    glEnableVertexAttribArray(3);//color
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(2*sizeof(vec3)+ sizeof(vec2)));
-    
-    glBindVertexArray(0);
-
-    return VAO;
-};
 
 GLuint create_texture(unsigned int height, unsigned int width, unsigned char* data){
     GLuint TBO;

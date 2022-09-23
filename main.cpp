@@ -28,12 +28,15 @@ double now_time;
 
 
 void test(){
-    vec3 a(1,1,1);
-    quat q(vec3(0,0,1), PI/4);
+    color a(1,1,1,1);
+    a = a*.5;
+    
+    a.print();
 
-    vec3 b = q*a;
-
+    // LowPrecision::uvec2_01 b(vec2(2.,.5));
+    LowPrecision::vec3_01 b(vec3(1.,.5, -1));
     b.print();
+
 }
 
 
@@ -50,6 +53,9 @@ void key_callback(int key, int scancode, int action, int mods){
 
 
 int main(){
+
+    test();
+   
     OS os(500, 600);
     os.key_callback = key_callback;
     now_time = OS::getTime();
@@ -86,17 +92,20 @@ int main(){
     Rmesh sky_box_mesh = gpu.meshes_new(Mesh::box(1., true));
     Rmesh sky_box_mesh2 = gpu.meshes_new(Mesh::box(10., true));
     
-    Img img = Img("./asset/Untitled.png");
+    Img img = Img("./asset/brickwall.jpg");
     Rtexture rtex = gpu.texture_new(img);
+    Rtexture normal_map = gpu.texture_new(Img("./asset/brickwall_normal.jpg"));
+
+
 
     Img faces[6];
-    faces[0] = Img("./asset/skybox/right.jpg");
-    faces[1] = Img("./asset/skybox/left.jpg");
+    faces[0] = Img("./asset/skybox/right.jpg",false);
+    faces[1] = Img("./asset/skybox/left.jpg", false);
 
-    faces[2] = Img("./asset/skybox/top.jpg");
-    faces[3] = Img("./asset/skybox/bottom.jpg");
-    faces[4] = Img("./asset/skybox/front.jpg");
-    faces[5] = Img("./asset/skybox/back.jpg");
+    faces[2] = Img("./asset/skybox/top.jpg", false);
+    faces[3] = Img("./asset/skybox/bottom.jpg", false);
+    faces[4] = Img("./asset/skybox/front.jpg", false);
+    faces[5] = Img("./asset/skybox/back.jpg", false);
 
     Rtexture cubemap = gpu.cubemap_new(faces);
 
@@ -104,6 +113,7 @@ int main(){
     gpu.use(normal_shader);
 
     gpu.shader_set("albedo", 0);
+    gpu.shader_set("normal_map", 2);
 
     mat4 trans(mat3(), vec3(0,0,0));
     
@@ -170,6 +180,7 @@ int main(){
         gpu.use_frame(os.default_frame);
         gpu.bind_tex_at(rtex, 0);
         gpu.bind_tex_at(depth_map, 1);
+        gpu.bind_tex_at(normal_map, 2);
         gpu.use(normal_shader);
         gpu.shader_set("albedo", 0);
         gpu.shader_set("shadow_map", 1);

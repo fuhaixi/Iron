@@ -3,12 +3,16 @@ out vec4 FragColor;
 in vec2 uv;
 in vec4 color;
 in vec3 normal;
+in mat3 TBN;
 in vec4 frag_pos_light_space;
 in vec3 frag_pos;
+
+
 
 uniform vec3 light_dir;
 uniform sampler2D albedo;
 uniform sampler2D shadow_map;
+uniform sampler2D normal_map;
 
 uniform vec3 light_color;
 uniform vec3 ambient;
@@ -38,10 +42,13 @@ float isInShadow(vec3 N, vec3 L){
 
 void main(){
     //world space
-    vec3 N = normalize(normal);
+
+    vec3 N = normalize(TBN * (texture(normal_map, uv).rgb *2. -1.));
     vec3 L = normalize(light_dir);
     vec3 R = reflect(-L, N);
     vec3 E = normalize(camera_pos - frag_pos);
+
+    
 
     float diffuse = max(dot(N, L), 0.0);
     float specular = pow(max(dot(R,E),0.0), 5.);
