@@ -154,13 +154,34 @@ public:
         return rt;
     }
 
-    Rtexture texture_new(unsigned int width, unsigned int height){
+    Rtexture texture_new(unsigned int width, unsigned int height,int format = GL_RGB, bool repeat = true, bool linear_filter = true){
+        unsigned int textureColorbuffer;
+        glGenTextures(1, &textureColorbuffer);
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer); 
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, linear_filter? GL_LINEAR :GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, linear_filter? GL_LINEAR :GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, repeat? GL_REPEAT :GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, repeat? GL_REPEAT :GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        Rtexture rt;
+        rt.gid = textureColorbuffer;
+        rt.size = vec2i(width, height);
+        textures.push_back(rt);
+
+        return rt;
+    }
+
+    Rtexture rgb16f_tex_new(unsigned int width, unsigned int height, bool repeat = true, bool linear_filter = true){
         unsigned int textureColorbuffer;
         glGenTextures(1, &textureColorbuffer);
         glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, linear_filter? GL_LINEAR :GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, linear_filter? GL_LINEAR :GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, repeat? GL_REPEAT :GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, repeat? GL_REPEAT :GL_CLAMP_TO_EDGE);
         glBindTexture(GL_TEXTURE_2D, 0);
 
         Rtexture rt;
@@ -215,6 +236,63 @@ public:
         ret.gid = depthMapFBO;
         return ret;
     }
+
+    Rframebuff color_frambuff_new(Rtexture color_tex0){
+
+        Rframebuff ret;
+        unsigned int fbo;
+        glGenFramebuffers(1, &fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color_tex0.gid, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        ret.size = color_tex0.size;
+        ret.gid = fbo;
+
+        return ret;
+    }
+
+
+    //auto genarate depth buffer
+    Rframebuff framebuff_new(Rtexture color_tex0, Rtexture color_tex1 = Rtexture(), bool use_depth = false){
+        Rframebuff ret;
+        unsigned int fbo;
+        glGenFramebuffers(1, &fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color_tex0.gid, 0);
+        if(color_tex1.gid != 0)
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, color_tex1.gid, 0);
+
+        if(use_depth){
+            unsigned int rboDepth;
+            glGenRenderbuffers(1, &rboDepth);
+            glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, color_tex0.size.x, color_tex0.size.y);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+        }
+
+        
+        if(color_tex1.gid != 0){
+            unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+            glDrawBuffers(2, attachments);
+        }
+
+
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            std::cout << "Framebuffer not complete!" << std::endl;
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+
+        ret.size = color_tex0.size;
+        ret.gid = fbo;
+
+        return ret;
+    }
+
+
+
 
     void use_frame(Rframebuff rf){
         glViewport(0, 0, rf.size.x, rf.size.y);

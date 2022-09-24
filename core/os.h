@@ -35,6 +35,7 @@ public:
     //int key, int scancode, int action, int mods
     void (*key_callback) (int, int,int,int);
     vec2i window_size;
+    vec2i renderbuff_size;
     float window_aspect;
     Rframebuff default_frame;
 

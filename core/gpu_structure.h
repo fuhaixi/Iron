@@ -5,24 +5,24 @@
 
 struct Rmesh
 {
-    uint gid;
+    uint gid = 0;
     size_t size;
 };
 
 struct Rshader
 {
-    uint gid;
+    uint gid = 0;
 };
 
 struct Rtexture{
-    uint gid;
+    uint gid = 0;
     vec2i size;
 };
 
 struct Rframebuff
 {
     vec2i size;
-    uint gid;
+    uint gid = 0;
 };
 
 

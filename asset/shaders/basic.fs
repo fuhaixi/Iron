@@ -1,5 +1,7 @@
 #version 330 core
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
+layout(location = 1) out vec4 BrightColor;
+
 in vec2 uv;
 in vec4 color;
 in vec3 normal;
@@ -58,5 +60,9 @@ void main(){
 
     vec3 Color = texture(albedo, uv).xyz * ((diffuse_color +specular_color)*(1.-isInShadow(N,L)) + ambient) ;
     FragColor = vec4(Color, 1.0);
+
+    float brightness = dot(Color, vec3(0.2126, 0.7152, 0.0722));
+    brightness = step(1., brightness);
+    BrightColor = vec4(brightness*Color,1.);
     //FragColor = vec4(uv, 1.0, 1.0);
 }

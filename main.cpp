@@ -17,9 +17,6 @@
 
 
 
-
-
-
 mat4 view(mat3(), vec3(0,0,-5));
 
 double last_time;
@@ -57,6 +54,7 @@ int main(){
     test();
    
     OS os(500, 600);
+    os.renderbuff_size = vec2i(1024,1024);
     os.key_callback = key_callback;
     now_time = OS::getTime();
     last_time = now_time;
@@ -71,13 +69,30 @@ int main(){
     
     GPU gpu;
 
-    Rtexture depth_map = gpu.depth_texture_new(SHADOW_WIDTH, SHADOW_HEIGHT);
 
+    //framebuff used to render main scene
+    Rtexture screen_tex = gpu.rgb16f_tex_new(os.renderbuff_size.x, os.renderbuff_size.y);
+    Rtexture bloom_tex = gpu.texture_new(os.renderbuff_size.x, os.renderbuff_size.y, 6407, false, true);
+    Rframebuff hdr_framebuff = gpu.framebuff_new(screen_tex, bloom_tex, true);
+    
+
+    Rtexture depth_map = gpu.depth_texture_new(SHADOW_WIDTH, SHADOW_HEIGHT);
     Rframebuff shadow_framebuff = gpu.depth_framebuffer_new(depth_map);
+    
+    Rtexture pinpong_color[2];
+    Rframebuff pinpong_framebuff[2];
+    for(int i =0; i<2 ; i++){
+        pinpong_color[i] = gpu.texture_new(os.renderbuff_size.x, os.renderbuff_size.y, 6407, false, true);
+        pinpong_framebuff[i] = gpu.framebuff_new(pinpong_color[i]);
+    }
+    
 
    
 
     Rshader simple_shader =gpu.shaders_new_from_file("./asset/shaders/tex_quad.vs", "./asset/shaders/tex_quad.fs");
+    Rshader screen_quad_shader =gpu.shaders_new_from_file("./asset/shaders/tex_quad.vs", "./asset/shaders/screen_quad.fs");
+    Rshader quad_blur_shader =gpu.shaders_new_from_file("./asset/shaders/tex_quad.vs", "./asset/shaders/screen_quad_blur.fs");
+
     Rmesh quad = gpu.meshes_new( Mesh::quad());
 
     Rshader normal_shader = gpu.shaders_new_from_file("./asset/shaders/basic.vs", "./asset/shaders/basic.fs");
@@ -171,13 +186,14 @@ int main(){
         gpu.render(rmesh_plane);
 
         
-        gpu.use_frame(os.default_frame);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-        
+   
 
         //pass2
-        gpu.use_frame(os.default_frame);
+        gpu.use_frame(hdr_framebuff);
+        glDepthFunc(GL_LESS);
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
         gpu.bind_tex_at(rtex, 0);
         gpu.bind_tex_at(depth_map, 1);
         gpu.bind_tex_at(normal_map, 2);
@@ -187,6 +203,7 @@ int main(){
         gpu.shader_set("light_view", light_view);
         gpu.shader_set("light_projection", light_projection);
         gpu.shader_set("light_dir", light_transform.w.xyz);
+        gpu.shader_set("light_color", vec3(2));
         
         gpu.shader_set("view", cam.get_view_mat());
         gpu.shader_set("projection", cam.projection);
@@ -204,17 +221,52 @@ int main(){
         gpu.shader_set("model", light_transform);
         gpu.shader_set("view", cam.get_view_mat());
         gpu.shader_set("projection", cam.projection);
+        gpu.shader_set("color", vec3(2));
         gpu.render(rmesh_box);
 
-        //sky box
+        gpu.shader_set("color", vec3(0,2,0));
+        gpu.shader_set("model", mat4(mat3().scaled(vec3(.2)), vec3(1,0,1)));
+        gpu.render(rmesh_box);
+
+
+        // sky box
         gpu.bind_tex_at(rtex, 0);
         gpu.use(skybox_shader);
         gpu.shader_set("sky_box", 0);
         gpu.shader_set("view", cam.get_view_mat());
         gpu.shader_set("projection", cam.projection);
+        gpu.shader_set("energy", 2.f);
         glDepthFunc(GL_LEQUAL);
         gpu.render(sky_box_mesh);
         glDepthFunc(GL_LESS);
+
+        //pass3 render to screen quad
+
+        //bloom effect
+        for (int i = 0; i < 20; i++)
+        {
+            gpu.use_frame(pinpong_framebuff[(i+1)%2]);
+            gpu.use(quad_blur_shader);
+            gpu.shader_set("horizontal", i%2);
+            if(i==0)
+                gpu.bind_tex_at(bloom_tex, 0);
+            else
+                gpu.bind_tex_at(pinpong_color[i%2], 0);
+            gpu.shader_set("tex", 0);
+            gpu.render(quad);
+        }
+        
+
+        gpu.use_frame(os.default_frame);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        gpu.use(screen_quad_shader);
+        gpu.shader_set("screen_tex", 0);
+        gpu.shader_set("bloom_tex", 1);
+        gpu.shader_set("bloom", 1.f);
+        gpu.shader_set("exposure",1.f);
+        gpu.bind_tex_at(pinpong_color[0], 1);
+        gpu.bind_tex_at(screen_tex, 1);
+        gpu.render(quad);
 
 
 
