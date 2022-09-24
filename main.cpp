@@ -50,8 +50,6 @@ void key_callback(int key, int scancode, int action, int mods){
 
 
 int main(){
-
-    test();
    
     OS os(500, 600);
     os.renderbuff_size = vec2i(1024,1024);
