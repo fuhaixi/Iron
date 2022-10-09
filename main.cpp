@@ -9,7 +9,6 @@
 #include"core/img.h"
 #include"core/mesh.h"
 #include"core/shader.h"
-#include"loader.h"
 #include"core/os.h"
 #include<cmath>
 #include "core/gpu.h"
@@ -153,7 +152,7 @@ int main(){
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK); 
   
-    while(true){
+    while(!OS::should_close()){
 
         if(OS::get_key(256)) break;//esc
 

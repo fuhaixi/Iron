@@ -164,6 +164,11 @@ public:
         return ret;
     }
 
+    static bool should_close(){
+        return glfwWindowShouldClose(instance->glfw_window);
+
+    }
+
 };
 
 
