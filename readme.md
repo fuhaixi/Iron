@@ -10,3 +10,6 @@
 ## 三方库
 
 stb, glad, glfw, imgui
+
+## todo
+    reconstruct gpu abstraction

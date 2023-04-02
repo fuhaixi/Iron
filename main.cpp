@@ -158,7 +158,7 @@ int main(){
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK); 
 
-    bool show_demo_window = true;
+    bool show_demo_window = false;
     bool show_debug_mesh = false;
   
     while(!OS::should_close()){
@@ -193,9 +193,7 @@ int main(){
 
         //imgui 
         ImGui::Begin("imgui");
-        //imgui button set gpu mehs_debug
-        // if(ImGui::Button("mesh debug")) gpu.set_debug(!gpu.debug);
-        //imgui checker bind gpu mesh_debug
+ 
         ImGui::Checkbox("mesh debug", &show_debug_mesh);
 
         
