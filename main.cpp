@@ -9,7 +9,6 @@
 #include"core/img.h"
 #include"core/mesh.h"
 #include"core/shader.h"
-#include"loader.h"
 #include"core/os.h"
 #include <cmath>
 #include "core/gpu.h"
@@ -162,11 +161,9 @@ int main(){
     bool show_demo_window = true;
     bool show_debug_mesh = false;
   
-    while(true){
-        //if window is closed, exit
-        if(OS::get_key(256) || !os.is_window_open()) break;//esc
+    while(!OS::should_close()){
 
-        
+        if(OS::get_key(256)) break;//esc
 
         OS::frame_begin();
         cam.set_projection(100, 0.1, 1, os.window_aspect);

@@ -6,6 +6,8 @@
 #include<string.h>
 #include<iostream>
 
+typedef unsigned int uint;
+
 #define SHORT_U 1.525902189e-05F
 
 #define PI 3.14159265358979323846 
