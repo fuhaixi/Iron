@@ -1,14 +1,9 @@
-#ifndef IRON_GL
-#define IRON_GL
+#include "iron_gl.h"
 
-#include<driver/glad.h>
-#include<iostream>
+using namespace IRON_GL;
 
-#include"../core/mesh.h"
-namespace GL
-{
 
-GLuint create_shader_program(const char* vshader_source, const char * fshader_source, const char* name = ""){
+GLuint  IRON_GL::create_shader_program(const char* vshader_source, const char * fshader_source, const char* name){
     
     GLuint vshader;
     vshader  = glCreateShader(GL_VERTEX_SHADER);
@@ -56,7 +51,7 @@ GLuint create_shader_program(const char* vshader_source, const char * fshader_so
     return shader_program;
 }
 
-GLuint create_shader_program(GLuint vshader, GLuint fshader){
+GLuint IRON_GL::create_shader_program(GLuint vshader, GLuint fshader){
     GLuint shader_program;
     shader_program = glCreateProgram();
     glAttachShader(shader_program, vshader);
@@ -75,7 +70,7 @@ GLuint create_shader_program(GLuint vshader, GLuint fshader){
 }
 
 
-GLuint create_vshader(const char* source){
+GLuint IRON_GL::create_vshader(const char* source){
     GLuint vshader;
     vshader  = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vshader, 1, &source, NULL);
@@ -91,7 +86,7 @@ GLuint create_vshader(const char* source){
     return vshader;
 }
 
-GLuint create_fshader(const char* source){
+GLuint IRON_GL::create_fshader(const char* source){
     GLuint fshader;
     fshader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fshader, 1, &source, NULL);
@@ -109,7 +104,7 @@ GLuint create_fshader(const char* source){
 
 
 
-GLuint create_texture(unsigned int height, unsigned int width, unsigned char* data){
+GLuint IRON_GL::create_texture(unsigned int height, unsigned int width, unsigned char* data){
     GLuint TBO;
     glGenTextures(1, &TBO);
     glBindTexture(GL_TEXTURE_2D, TBO);
@@ -122,13 +117,9 @@ GLuint create_texture(unsigned int height, unsigned int width, unsigned char* da
     return TBO;
 }
 
-void draw(GLuint VAO, size_t size){
+void IRON_GL::draw(GLuint VAO, size_t size){
     glBindVertexArray(VAO);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glDrawElements(GL_TRIANGLES, size, GL_UNSIGNED_INT, NULL);
 }
     
-} // namespace GL
-
-
-#endif

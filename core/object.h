@@ -1,8 +1,8 @@
 #ifndef IRON_OBJECT
 #define IRON_OBJECT
-#include"core/core_structure.h"
-#include"core/mesh.h"
-#include"material.h"
+#include"core_structure.h"
+#include"mesh.h"
+#include "material.h"
 #include"gpu_structure.h"
 
 class Object

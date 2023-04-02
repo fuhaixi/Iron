@@ -1,6 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 
-#include <driver/gl.h>
+#include "iron_gl.h"
 #include<GLFW/glfw3.h>
 #include<stdio.h>
 #include<stdlib.h>
@@ -11,10 +11,13 @@
 #include"core/shader.h"
 #include"loader.h"
 #include"core/os.h"
-#include<cmath>
+#include <cmath>
 #include "core/gpu.h"
 #include "utils/camera.h"
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 
 
 mat4 view(mat3(), vec3(0,0,-5));
@@ -66,6 +69,9 @@ int main(){
     cam.set_projection(100, 0.1, 1, os.window_aspect);
     
     GPU gpu;
+
+    
+  
 
 
     //framebuff used to render main scene
@@ -132,7 +138,7 @@ int main(){
     
     vec3 light_dir = vec3(-2.0f, 4.0f, -1.0f);
     gpu.shader_set("light_color", vec3(1,1,1));
-    gpu.shader_set("ambient", vec3(0.2));
+    gpu.shader_set("ambient", vec3(0.2, 0.2, 0.5));
     
     vec3 scene_center(0);
     mat4 light_transform = mat4::lookAt(vec3(0,3, 3), scene_center, vec3(0,1,0));
@@ -152,10 +158,15 @@ int main(){
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK); 
+
+    bool show_demo_window = true;
+    bool show_debug_mesh = false;
   
     while(true){
+        //if window is closed, exit
+        if(OS::get_key(256) || !os.is_window_open()) break;//esc
 
-        if(OS::get_key(256)) break;//esc
+        
 
         OS::frame_begin();
         cam.set_projection(100, 0.1, 1, os.window_aspect);
@@ -183,8 +194,19 @@ int main(){
         gpu.shader_set("model", mat4(mat3(), vec3(0,-1,0)));
         gpu.render(rmesh_plane);
 
+        //imgui 
+        ImGui::Begin("imgui");
+        //imgui button set gpu mehs_debug
+        // if(ImGui::Button("mesh debug")) gpu.set_debug(!gpu.debug);
+        //imgui checker bind gpu mesh_debug
+        ImGui::Checkbox("mesh debug", &show_debug_mesh);
+
         
-   
+
+        ImGui::End();
+
+        if (show_demo_window)
+            ImGui::ShowDemoWindow(&show_demo_window);
 
         //pass2
         gpu.use_frame(hdr_framebuff);
@@ -209,7 +231,10 @@ int main(){
 
         gpu.shader_set("model", mat4(mat3(), vec3(0,0,0)));
         
-        gpu.render(rmesh_box);
+        if(show_debug_mesh)
+            gpu.render(rmesh_box, 1);
+        else
+            gpu.render(rmesh_box);
 
         gpu.shader_set("model", mat4(mat3(), vec3(0,-1,0)));
         gpu.render(rmesh_plane);

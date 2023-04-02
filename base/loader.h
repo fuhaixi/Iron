@@ -7,8 +7,6 @@
 #include"core/mesh.h"
 #include<cassert>
 
-#include <assimp/Importer.hpp>      // C++ importer interface
-#include <assimp/scene.h> 
 
 #define streq(a, b) strcmp(a, b)==0
 
